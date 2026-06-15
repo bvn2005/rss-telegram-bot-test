@@ -189,15 +189,14 @@ response.raise_for_status()
 # Надсилання тексту статті
 # =========================
 
-MAX_LEN = 4000
-
+MAX_LEN = 3500
 for i in range(0, len(article_text), MAX_LEN):
-
     chunk = article_text[i:i + MAX_LEN]
-
+    chunk = html.escape(chunk)
     requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
         json={
+            "chat_id": CHAT_ID,
             "text": f"<blockquote>{chunk}</blockquote>",
             "parse_mode": "HTML"
         },

@@ -121,9 +121,32 @@ article_text = get_article_text(link)
 # Фото новини
 # =========================
 
+# preview_photo = None
+
+# og_image = soup.find(
+#     "meta",
+#     property="og:image"
+# )
+
+# if og_image:
+#     preview_photo = og_image.get("content")
+
 preview_photo = None
 
-og_image = soup.find(
+article_page = requests.get(
+    link,
+    headers={"User-Agent": "Mozilla/5.0"},
+    timeout=30
+)
+
+article_page.raise_for_status()
+
+article_soup = BeautifulSoup(
+    article_page.text,
+    "html.parser"
+)
+
+og_image = article_soup.find(
     "meta",
     property="og:image"
 )
@@ -131,6 +154,7 @@ og_image = soup.find(
 if og_image:
     preview_photo = og_image.get("content")
 
+print("Photo:", preview_photo)
 
 # =========================
 # Кнопка

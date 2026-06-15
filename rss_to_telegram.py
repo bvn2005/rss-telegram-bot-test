@@ -201,6 +201,17 @@ for i in range(0, len(article_text), MAX_LEN):
             "text": f"<blockquote>{chunk}</blockquote>",
             "parse_mode": "HTML"
         },
+
+    article_text = html.escape(article_text)
+
+    requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        json={
+            "chat_id": CHAT_ID,
+            "text": f"<blockquote expandable>{article_text}</blockquote>",
+            "parse_mode": "HTML"
+        },
+    
         timeout=30
     )
 

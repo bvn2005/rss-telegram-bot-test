@@ -86,6 +86,8 @@ link = news["href"]
 # =========================
 # Захист від дублювання
 # =========================
+print("Current link:", link)
+print("Saved link:", state.get("last_url"))
 
 # Якщо ця новина вже публікувалася
 if link == state.get("last_url"):

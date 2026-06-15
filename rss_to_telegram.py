@@ -8,7 +8,7 @@ BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
 URL = "https://mt-news.ru/news/"
-#STATE_FILE = "state.json"
+STATE_FILE = "state.json"
 
 
 # =========================

@@ -1,27 +1,46 @@
-# Робота з змінними середовища (BOT_TOKEN, CHAT_ID)
 import os
-
-# Робота з файлом state.json
 import json
-
-# HTTP-запити до сайту та Telegram API
 import requests
-
-# Парсер HTML
 from bs4 import BeautifulSoup
 
-
-# Токен Telegram-бота із GitHub Secrets
 BOT_TOKEN = os.environ["BOT_TOKEN"]
-
-# ID каналу або чату із GitHub Secrets
 CHAT_ID = os.environ["CHAT_ID"]
 
-# Сторінка зі списком новин
 URL = "https://mt-news.ru/news/"
-
-# Файл для запам'ятовування останньої опублікованої новини
 STATE_FILE = "state.json"
+
+
+# =========================
+# Отримання тексту статті
+# =========================
+
+def get_article_text(url):
+
+    r = requests.get(
+        url,
+        headers={"User-Agent": "Mozilla/5.0"},
+        timeout=30
+    )
+
+    r.raise_for_status()
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    article = soup.select_one("div.text.margin-top")
+
+    if not article:
+        return ""
+
+    parts = []
+
+    for tag in article.find_all(["p", "blockquote"]):
+
+        text = tag.get_text(" ", strip=True)
+
+        if text:
+            parts.append(text)
+
+    return "\n\n".join(parts)
 
 
 # =========================
@@ -29,15 +48,11 @@ STATE_FILE = "state.json"
 # =========================
 
 try:
-    # Якщо файл існує — читаємо його
     with open(STATE_FILE, "r", encoding="utf-8") as f:
         state = json.load(f)
 
 except:
-    # Якщо файл відсутній — створюємо порожній стан
-    state = {
-        "last_url": ""
-    }
+    state = {"last_url": ""}
 
 
 # =========================
@@ -46,20 +61,11 @@ except:
 
 r = requests.get(
     URL,
-    headers={
-        # Імітуємо звичайний браузер
-        "User-Agent": "Mozilla/5.0"
-    },
+    headers={"User-Agent": "Mozilla/5.0"},
     timeout=30
 )
 
-# Якщо сайт повернув помилку (404, 500 тощо)
 r.raise_for_status()
-
-
-# =========================
-# Розбір HTML
-# =========================
 
 soup = BeautifulSoup(r.text, "html.parser")
 
@@ -68,46 +74,34 @@ soup = BeautifulSoup(r.text, "html.parser")
 # Пошук першої новини
 # =========================
 
-news = soup.select_one(
-    "a.border.border-radius.padding"
-)
+news = soup.select_one("a.border.border-radius.padding")
 
 if not news:
     raise Exception("News not found")
 
 
 # =========================
-# Посилання на новину
+# Дані новини
 # =========================
 
 link = news["href"]
+
+print("Current link:", link)
+print("Saved link:", state.get("last_url"))
 
 
 # =========================
 # Захист від дублювання
 # =========================
-print("Current link:", link)
-print("Saved link:", state.get("last_url"))
 
-# Якщо ця новина вже публікувалася
 if link == state.get("last_url"):
 
     print("No new posts")
 
-    # Завершуємо роботу без помилки
     raise SystemExit(0)
 
 
-# =========================
-# Отримання дати новини
-# =========================
-
 date = news.find("span").get_text(strip=True)
-
-
-# =========================
-# Отримання заголовка
-# =========================
 
 title = news.find(
     "h3",
@@ -116,76 +110,106 @@ title = news.find(
 
 
 # =========================
-# Формування тексту повідомлення
+# Текст статті
 # =========================
 
-text = (
-    f"🏍 MotoGP News\n\n"
-    f"{title}\n\n"
-    f"📅 {date}"
+article_text = get_article_text(link)
+
+
+# =========================
+# Фото новини
+# =========================
+
+preview_photo = None
+
+og_image = soup.find(
+    "meta",
+    property="og:image"
 )
 
+if og_image:
+    preview_photo = og_image.get("content")
+
 
 # =========================
-# Кнопка "Читати"
+# Кнопка
 # =========================
 
 keyboard = {
-    "inline_keyboard": [
-        [
-            {
-                "text": "Читати",
-                "url": link
-            }
-        ]
-    ]
+    "inline_keyboard": [[
+        {
+            "text": "Читати оригінал",
+            "url": link
+        }
+    ]]
 }
 
 
 # =========================
-# Відправка повідомлення
+# Повідомлення з фото
 # =========================
 
-response = requests.post(
-    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-    json={
-        "chat_id": CHAT_ID,
-
-        # Текст повідомлення
-        "text": text,
-
-        # Кнопка під повідомленням
-        "reply_markup": keyboard,
-
-        # Показувати прев'ю сторінки
-        "disable_web_page_preview": False
-    },
-    timeout=30
+caption = (
+    f"🏍 MotoGP News\n\n"
+    f"<b>{title}</b>\n\n"
+    f"📅 {date}"
 )
 
+if preview_photo:
 
-# =========================
-# Логування відповіді Telegram
-# =========================
+    response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
+        json={
+            "chat_id": CHAT_ID,
+            "photo": preview_photo,
+            "caption": caption,
+            "parse_mode": "HTML",
+            "reply_markup": keyboard
+        },
+        timeout=30
+    )
 
-print(response.status_code)
-print(response.text)
+else:
 
+    response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        json={
+            "chat_id": CHAT_ID,
+            "text": caption,
+            "parse_mode": "HTML",
+            "reply_markup": keyboard
+        },
+        timeout=30
+    )
 
-# Якщо Telegram повернув помилку
 response.raise_for_status()
 
 
 # =========================
-# Запам'ятати новину
+# Надсилання тексту статті
+# =========================
+
+MAX_LEN = 4000
+
+for i in range(0, len(article_text), MAX_LEN):
+
+    chunk = article_text[i:i + MAX_LEN]
+
+    requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        json={
+            "chat_id": CHAT_ID,
+            "text": chunk
+        },
+        timeout=30
+    )
+
+
+# =========================
+# Оновлення state.json
 # =========================
 
 state["last_url"] = link
-
-
-# =========================
-# Зберегти state.json
-# =========================
 
 with open(
     STATE_FILE,
@@ -200,9 +224,5 @@ with open(
         indent=2
     )
 
-
-# =========================
-# Лог успішної публікації
-# =========================
 
 print("Published:", link)

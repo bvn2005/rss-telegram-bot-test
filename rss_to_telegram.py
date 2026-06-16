@@ -166,6 +166,7 @@ if img:
     preview_photo = img.get("src")
 
 print("Photo:", preview_photo)
+print("Photo URL:", preview_photo)
 
 # =========================
 # Кнопка

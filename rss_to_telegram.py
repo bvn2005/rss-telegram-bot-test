@@ -120,53 +120,31 @@ article_text = get_article_text(link)
 # =========================
 # Фото новини
 # =========================
-# preview_photo = None
 
-# og_image = soup.find(
-#     "meta",
-#     property="og:image"
-# )
+article_page = requests.get(
+    link,
+    headers={"User-Agent": "Mozilla/5.0"},
+    timeout=30
+)
 
-# if og_image:
-#     preview_photo = og_image.get("content")
-# =========================
-# =========================
-# preview_photo = None
+article_page.raise_for_status()
 
-# article_page = requests.get(
-#     link,
-#     headers={"User-Agent": "Mozilla/5.0"},
-#     timeout=30
-# )
+article_soup = BeautifulSoup(
+    article_page.text,
+    "html.parser"
+)
 
-# article_page.raise_for_status()
-
-# article_soup = BeautifulSoup(
-#     article_page.text,
-#     "html.parser"
-# )
-
-# og_image = article_soup.find(
-#     "meta",
-#     property="og:image"
-# )
-
-# if og_image:
-#     preview_photo = og_image.get("content")
-
-# print("Photo:", preview_photo)
-# =========================
-
-# =========================
 preview_photo = None
 
-img = news.find_next("img")
+figure = article_soup.select_one(
+    "div.text.margin-top figure.wp-block-image img"
+)
 
-if img:
-    preview_photo = img.get("src")
+if figure:
+    preview_photo = figure.get("src")
 
-print("Photo:", preview_photo)
 print("Photo URL:", preview_photo)
+
 
 # =========================
 # Кнопка

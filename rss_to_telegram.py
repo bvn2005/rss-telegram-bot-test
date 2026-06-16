@@ -120,7 +120,6 @@ article_text = get_article_text(link)
 # =========================
 # Фото новини
 # =========================
-
 # preview_photo = None
 
 # og_image = soup.find(
@@ -130,29 +129,41 @@ article_text = get_article_text(link)
 
 # if og_image:
 #     preview_photo = og_image.get("content")
+# =========================
+# =========================
+# preview_photo = None
 
+# article_page = requests.get(
+#     link,
+#     headers={"User-Agent": "Mozilla/5.0"},
+#     timeout=30
+# )
+
+# article_page.raise_for_status()
+
+# article_soup = BeautifulSoup(
+#     article_page.text,
+#     "html.parser"
+# )
+
+# og_image = article_soup.find(
+#     "meta",
+#     property="og:image"
+# )
+
+# if og_image:
+#     preview_photo = og_image.get("content")
+
+# print("Photo:", preview_photo)
+# =========================
+
+# =========================
 preview_photo = None
 
-article_page = requests.get(
-    link,
-    headers={"User-Agent": "Mozilla/5.0"},
-    timeout=30
-)
+img = news.find_next("img")
 
-article_page.raise_for_status()
-
-article_soup = BeautifulSoup(
-    article_page.text,
-    "html.parser"
-)
-
-og_image = article_soup.find(
-    "meta",
-    property="og:image"
-)
-
-if og_image:
-    preview_photo = og_image.get("content")
+if img:
+    preview_photo = img.get("src")
 
 print("Photo:", preview_photo)
 

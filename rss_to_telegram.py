@@ -110,6 +110,7 @@ for news in reversed(new_posts):
 
     link = news["href"]
 
+    print("=" * 50)
     print("Publishing:", link)
 
     date = news.find("span").get_text(strip=True)

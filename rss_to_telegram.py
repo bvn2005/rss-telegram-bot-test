@@ -239,7 +239,7 @@ for news in reversed(new_posts):
     print("Article length:", len(article_text))
     if len(article_text) <= MAX_LEN:
         article_text = html.escape(article_text)
-        requests.post(
+        article_response = requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
             json={
                 "chat_id": CHAT_ID,
@@ -248,7 +248,12 @@ for news in reversed(new_posts):
             },
             timeout=30
         )
+    
+        print("Article status:", article_response.status_code)
+        print("Article response:", article_response.text)
+    
         article_response.raise_for_status()
+    
         print("Article sent")
     
     else:

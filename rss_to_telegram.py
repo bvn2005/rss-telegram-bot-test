@@ -138,8 +138,8 @@ for news in reversed(new_posts):
         timeout=30
     )
     
-    article_page.raise_for_status()
-        article_soup = BeautifulSoup(
+    article_page.raise_for_status
+    article_soup = BeautifulSoup(
         article_page.text,
         "html.parser"
     )

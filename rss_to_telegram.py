@@ -72,200 +72,225 @@ soup = BeautifulSoup(r.text, "html.parser")
 
 
 # =========================
-# Пошук першої новини
+# Пошук новин
 # =========================
 
-news = soup.select_one("a.border.border-radius.padding")
+news_list = soup.select("a.border.border-radius.padding")
 
-if not news:
+if not news_list:
     raise Exception("News not found")
 
 
 # =========================
-# Дані новини
+# Пошук нових новин
 # =========================
 
-link = news["href"]
+new_posts = []
 
-print("Current link:", link)
-print("Saved link:", state.get("last_url"))
+for news in news_list:
 
+    link = news["href"]
 
-# =========================
-# Захист від дублювання
-# =========================
+    if link == state.get("last_url"):
+        break
 
-if link == state.get("last_url"):
+    new_posts.append(news)
 
+print("New posts found:", len(new_posts))
+if not new_posts:
     print("No new posts")
-
     raise SystemExit(0)
-
-
-date = news.find("span").get_text(strip=True)
-
-title = news.find(
-    "h3",
-    class_="padding-top"
-).get_text(strip=True)
-
+    
 
 # =========================
-# Текст статті
+# Публікація новин
 # =========================
 
-article_text = get_article_text(link)
+for news in reversed(new_posts):
 
+    link = news["href"]
 
-# =========================
-# Фото новини
-# =========================
+    print("Publishing:", link)
 
-article_page = requests.get(
-    link,
-    headers={"User-Agent": "Mozilla/5.0"},
-    timeout=30
-)
+    date = news.find("span").get_text(strip=True)
 
-article_page.raise_for_status()
+    title = news.find(
+        "h3",
+        class_="padding-top"
+    ).get_text(strip=True)
+    
 
-article_soup = BeautifulSoup(
-    article_page.text,
-    "html.parser"
-)
+    # =========================
+    # Текст статті
+    # =========================
 
-preview_photo = None
-
-figure = article_soup.select_one(
-    "div.text.margin-top figure.wp-block-image img"
-)
-
-if figure:
-    preview_photo = figure.get("src")
-
-print("Photo URL:", preview_photo)
-
-
-# =========================
-# Кнопка
-# =========================
-
-keyboard = {
-    "inline_keyboard": [[
-        {
-            "text": "Читати оригінал",
-            "url": link
-        }
-    ]]
-}
-
-
-# =========================
-# Повідомлення з фото
-# =========================
-
-caption = (
-    f"🏍 MotoGP News\n\n"
-    f"<b>{title}</b>\n\n"
-    f"📅 {date}"
-)
-
-if preview_photo:
-
-    img = requests.get(
-        preview_photo,
+    article_text = get_article_text(link)
+    
+    
+    # =========================
+    # Фото новини
+    # =========================
+    
+    article_page = requests.get(
+        link,
         headers={"User-Agent": "Mozilla/5.0"},
         timeout=30
     )
-
-    img.raise_for_status()
-    print("Downloading image...")
-    print("Photo URL:", preview_photo)
-    print("Image size:", len(img.content))
-    print("Image content-type:", img.headers.get("content-type"))
-
-    response = requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
-        data={
-            "chat_id": CHAT_ID,
-            "caption": caption,
-            "parse_mode": "HTML",
-            "reply_markup": json.dumps(keyboard)
-        },
-        files={
-            "photo": (
-                "photo.jpg",
-                img.content
-            )
-        },
-        timeout=60
-    )
-
-else:
-
-    response = requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        json={
-            "chat_id": CHAT_ID,
-            "text": caption,
-            "parse_mode": "HTML",
-            "reply_markup": keyboard
-        },
-        timeout=30
-    )
-
-print("Status:", response.status_code)
-print("Response:", response.text)
-
-response.raise_for_status()
-
-# =========================
-# Надсилання тексту статті
-# =========================
-
-MAX_LEN = 3500
-for i in range(0, len(article_text), MAX_LEN):
-    # chunk = article_text[i:i + MAX_LEN]
-    # chunk = html.escape(chunk)
-    # requests.post(
-    #     f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-    #     json={
-    #         "chat_id": CHAT_ID,
-    #         "text": f"<blockquote>{chunk}</blockquote>",
-    #         "parse_mode": "HTML"
-    #     },  
-    #     timeout=30
-    # )
     
-    article_text = html.escape(article_text)
-    requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        json={
-            "chat_id": CHAT_ID,
-            "text": f"<blockquote expandable>{article_text}</blockquote>",
-            "parse_mode": "HTML"
-        },
-        timeout=30
+    article_page.raise_for_status()
+        article_soup = BeautifulSoup(
+        article_page.text,
+        "html.parser"
     )
+    
+    preview_photo = None
+    
+    figure = article_soup.select_one(
+        "div.text.margin-top figure.wp-block-image img"
+    )
+    
+    if figure:
+        preview_photo = figure.get("src")
+    
+    print("Photo URL:", preview_photo)
+    
+    
+    # =========================
+    # Кнопка
+    # =========================
+    
+    keyboard = {
+        "inline_keyboard": [[
+            {
+                "text": "Читати оригінал",
+                "url": link
+            }
+        ]]
+    }
+    
+    
+    # =========================
+    # Повідомлення з фото
+    # =========================
+    
+    caption = (
+        f"🏍 MotoGP News\n\n"
+        f"<b>{title}</b>\n\n"
+        f"📅 {date}"
+    )
+    
+    if preview_photo:
+    
+        img = requests.get(
+            preview_photo,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=30
+        )
+    
+        img.raise_for_status()
+        print("Downloading image...")
+        print("Photo URL:", preview_photo)
+        print("Image size:", len(img.content))
+        print("Image content-type:", img.headers.get("content-type"))
+    
+        response = requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
+            data={
+                "chat_id": CHAT_ID,
+                "caption": caption,
+                "parse_mode": "HTML",
+                "reply_markup": json.dumps(keyboard)
+            },
+            files={
+                "photo": (
+                    "photo.jpg",
+                    img.content
+                )
+            },
+            timeout=60
+        )
+    
+    else:
+    
+        response = requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            json={
+                "chat_id": CHAT_ID,
+                "text": caption,
+                "parse_mode": "HTML",
+                "reply_markup": keyboard
+            },
+            timeout=30
+        )
+    
+    print("Status:", response.status_code)
+    print("Response:", response.text)
+    
+    response.raise_for_status()
+    print("Preview sent")
+    
+    
+    # =========================
+    # Надсилання тексту статті
+    # =========================
+    
+    MAX_LEN = 3500
+    print("Article length:", len(article_text))
+    if len(article_text) <= MAX_LEN:
+        article_text = html.escape(article_text)
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            json={
+                "chat_id": CHAT_ID,
+                "text": f"<blockquote expandable>{article_text}</blockquote>",
+                "parse_mode": "HTML"
+            },
+            timeout=30
+        )
+        article_response.raise_for_status()
+        print("Article sent")
+    
+    else:
+        for i in range(0, len(article_text), MAX_LEN):
+            print("Sending chunk:", i // MAX_LEN + 1)
+            chunk = article_text[i:i + MAX_LEN]
+            chunk = html.escape(chunk)
 
+            article_response = requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": CHAT_ID,
+                    "text": f"<blockquote>{chunk}</blockquote>",
+                    "parse_mode": "HTML"
+                },
+                timeout=30
+            )
+        
+            article_response.raise_for_status()
+        
+            print("Chunk sent:", i // MAX_LEN + 1)
+    
+            
+    
 # =========================
 # Оновлення state.json
 # =========================
 
-state["last_url"] = link
+if new_posts:
 
-with open(
-    STATE_FILE,
-    "w",
-    encoding="utf-8"
-) as f:
+    state["last_url"] = new_posts[0]["href"]
 
-    json.dump(
-        state,
-        f,
-        ensure_ascii=False,
-        indent=2
-    )
+    with open(
+        STATE_FILE,
+        "w",
+        encoding="utf-8"
+    ) as f:
 
+        json.dump(
+            state,
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
 
-print("Published:", link)
+    print("New last_url:", state["last_url"])

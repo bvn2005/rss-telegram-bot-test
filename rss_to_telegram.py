@@ -172,16 +172,33 @@ caption = (
 
 if preview_photo:
 
+    img = requests.get(
+        preview_photo,
+        headers={"User-Agent": "Mozilla/5.0"},
+        timeout=30
+    )
+
+    img.raise_for_status()
+    print("Downloading image...")
+    print("Photo URL:", preview_photo)
+    print("Image size:", len(img.content))
+    print("Image content-type:", img.headers.get("content-type"))
+
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
-        json={
+        data={
             "chat_id": CHAT_ID,
-            "photo": preview_photo,
             "caption": caption,
             "parse_mode": "HTML",
-            "reply_markup": keyboard
+            "reply_markup": json.dumps(keyboard)
         },
-        timeout=30
+        files={
+            "photo": (
+                "photo.jpg",
+                img.content
+            )
+        },
+        timeout=60
     )
 
 else:
@@ -201,7 +218,6 @@ print("Status:", response.status_code)
 print("Response:", response.text)
 
 response.raise_for_status()
-
 
 # =========================
 # Надсилання тексту статті

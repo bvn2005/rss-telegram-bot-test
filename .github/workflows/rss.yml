@@ -2,8 +2,8 @@ name: RSS to Telegram
 
 on:
 # розкоментувати, для автозапуску кожні 30хв
-  schedule:
-    - cron: "*/30 * * * *"
+  # schedule:
+  #   - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:

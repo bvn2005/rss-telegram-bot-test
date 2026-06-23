@@ -233,7 +233,7 @@ for news in reversed(new_posts):
         f"🏍 MotoGP News\n\n"
         f"<b>{title}</b>\n\n"
         f"📅 {date}"
-        f"{tags_text}"
+        f" {tags_text}"
     )
     
     if preview_photo:

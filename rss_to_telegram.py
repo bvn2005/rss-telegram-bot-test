@@ -36,8 +36,11 @@ def get_article_text(url):
 
     for tag in article.find_all(["p", "blockquote"]):
 
+        # ❗ пропускаємо p всередині blockquote
+        if tag.name == "p" and tag.find_parent("blockquote"):
+            continue
+            
         text = tag.get_text(" ", strip=True)
-
         if text:
             parts.append(text)
 
@@ -128,7 +131,7 @@ for news in reversed(new_posts):
     article_text = get_article_text(link)
     print("LEN:", len(article_text))
     print(article_text[:1000])
-    print(article_text.count("Мой отец был механиком"))
+    # print(article_text.count("Мой отец был механиком"))
     for line in article_text.split("\n\n"):
         if article_text.count(line) > 1:
             print("DUPLICATE:", line[:80])
@@ -272,7 +275,7 @@ for news in reversed(new_posts):
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                 json={
                     "chat_id": CHAT_ID,
-                    "text": f"<blockquote>{chunk}</blockquote>",
+                    "text": f"<blockquote expandable>{chunk}</blockquote>",
                     "parse_mode": "HTML"
                 },
                 timeout=30

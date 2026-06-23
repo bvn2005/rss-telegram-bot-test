@@ -1,13 +1,22 @@
+# Робота з змінними середовища (BOT_TOKEN, CHAT_ID)
 import os
+# Парсер HTML
 import html
+# Робота з файлом state.json
 import json
+# HTTP-запити до сайту та Telegram API
 import requests
 from bs4 import BeautifulSoup
 
+# Токен Telegram-бота із GitHub Secrets
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+# ID каналу або чату із GitHub Secrets
 CHAT_ID = os.environ["CHAT_ID"]
 
+
+# Сторінка зі списком новин
 URL = "https://mt-news.ru/news/"
+# Файл для запам'ятовування останньої опублікованої новини
 STATE_FILE = "state.json"
 
 
@@ -19,12 +28,15 @@ def get_article_text(url):
 
     r = requests.get(
         url,
+        # Імітуємо звичайний браузер
         headers={"User-Agent": "Mozilla/5.0"},
         timeout=30
     )
-
+    
+    # Якщо сайт повернув помилку (404, 500 тощо)
     r.raise_for_status()
-
+    
+    # Розбір HTML
     soup = BeautifulSoup(r.text, "html.parser")
 
     article = soup.select_one("div.text.margin-top")
@@ -52,10 +64,12 @@ def get_article_text(url):
 # =========================
 
 try:
+    # Якщо файл існує — читаємо його
     with open(STATE_FILE, "r", encoding="utf-8") as f:
         state = json.load(f)
 
 except:
+    # Якщо файл відсутній — створюємо порожній стан
     state = {"last_url": ""}
 
 
@@ -91,9 +105,11 @@ if not news_list:
 new_posts = []
 
 for news in news_list:
-
+    # Посилання на новину
     link = news["href"]
 
+    # Захист від дублювання
+    # Якщо ця новина вже публікувалася
     if link == state.get("last_url"):
         break
 
@@ -102,6 +118,7 @@ for news in news_list:
 print("New posts found:", len(new_posts))
 if not new_posts:
     print("No new posts")
+    # Завершуємо роботу без помилки
     raise SystemExit(0)
     
 
@@ -115,9 +132,11 @@ for news in reversed(new_posts):
 
     print("=" * 50)
     print("Publishing:", link)
-
+    
+    # Отримання дати новини
     date = news.find("span").get_text(strip=True)
 
+    # Отримання заголовка
     title = news.find(
         "h3",
         class_="padding-top"
@@ -228,14 +247,18 @@ for news in reversed(new_posts):
                 "chat_id": CHAT_ID,
                 "text": caption,
                 "parse_mode": "HTML",
+                # Кнопка під повідомленням
                 "reply_markup": keyboard
             },
             timeout=30
         )
-    
+
+    # Логування відповіді Telegram
     print("Status:", response.status_code)
     print("Response:", response.text)
+
     
+    # Якщо Telegram повернув помилку
     response.raise_for_status()
     print("Preview sent")
     
@@ -293,6 +316,7 @@ for news in reversed(new_posts):
 
 if new_posts:
 
+    # Запам'ятати новину
     state["last_url"] = new_posts[0]["href"]
 
     with open(

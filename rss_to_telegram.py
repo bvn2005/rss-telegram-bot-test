@@ -194,10 +194,11 @@ for news in reversed(new_posts):
     article_soup = BeautifulSoup(
         article_page.text,
         "html.parser"
-        tags = get_tags(article_soup)
-        tags_text = " ".join(tags)
     )
-    
+
+    tags = get_tags(article_soup)
+    tags_text = " ".join(tags)
+        
     preview_photo = None
     
     figure = article_soup.select_one(

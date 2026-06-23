@@ -232,8 +232,8 @@ for news in reversed(new_posts):
     caption = (
         f"🏍 MotoGP News\n\n"
         f"<b>{title}</b>\n\n"
-        f"📅 {date}"
-        f" {tags_text}"
+        f"📅 {date}\n\n"
+        f"{tags_text}"
     )
     
     if preview_photo:

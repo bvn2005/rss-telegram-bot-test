@@ -63,7 +63,6 @@ def get_article_text(url):
 # =========================
 # Пошук тегів
 # =========================
-
 def get_tags(soup):
 
     tags_block = soup.select_one("p.tags")
@@ -82,6 +81,22 @@ def get_tags(soup):
             tags.append(tag)
     
     return tags
+
+
+# =========================
+# Пошук джерела
+# =========================
+def get_source(soup):
+
+    source_block = soup.select_one("p.source a")
+
+    if not source_block:
+        return ""
+
+    source_text = source_block.get_text(strip=True)
+    source_url = source_block.get("href")
+
+    return f"Источник: <a href='{source_url}'>{source_text}</a>"
 
 # =========================
 # Завантаження state.json
@@ -198,6 +213,7 @@ for news in reversed(new_posts):
 
     tags = get_tags(article_soup)
     tags_text = " ".join(tags)
+    source_text = get_source(article_soup)
         
     preview_photo = None
     
@@ -233,7 +249,8 @@ for news in reversed(new_posts):
         f"🏍 MotoGP News\n\n"
         f"<b>{title}</b>\n\n"
         f"📅 {date}\n\n"
-        f"{tags_text}"
+        f"{tags_text}\n\n"
+        f"{source_text}"
     )
     
     if preview_photo:

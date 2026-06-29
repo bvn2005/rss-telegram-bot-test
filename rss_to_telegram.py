@@ -20,6 +20,10 @@ URL = "https://mt-news.ru/news/"
 # Файл для запам'ятовування останньої опублікованої новини
 STATE_FILE = "state.json"
 
+# ===============================================================
+# 👉 Функція для відправки повідомлень у Telegram через Bot API
+# 👉 з автоматичним повтором при помилках (особливо 429)
+# ===============================================================
 def tg_post(method, payload=None, files=None):
     for attempt in range(3):
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
@@ -40,7 +44,6 @@ def tg_post(method, payload=None, files=None):
 # =========================
 # Отримання тексту статті
 # =========================
-
 def get_article_text(url):
 
     r = requests.get(
@@ -76,17 +79,13 @@ def get_article_text(url):
     return "\n\n".join(parts)
 
 
-
 # =========================
 # Пошук тегів
 # =========================
 def get_tags(soup):
-
-    tags_block = soup.select_one("p.tags")
-    
+    tags_block = soup.select_one("p.tags")   
     if not tags_block:
         return []
-    
     tags = []
     
     for a in tags_block.find_all("a"):
@@ -96,7 +95,6 @@ def get_tags(soup):
             # робимо hashtag
             tag = "#" + tag.replace(" ", "")
             tags.append(tag)
-    
     return tags
 
 
@@ -270,15 +268,12 @@ for news in reversed(new_posts):
         f"{source_text}"
     )
     
-    
     if preview_photo:
-    
         img = requests.get(
             preview_photo,
             headers={"User-Agent": "Mozilla/5.0"},
             timeout=30
         )
-    
         img.raise_for_status()
         print("Downloading image...")
         print("Photo URL:", preview_photo)
@@ -297,9 +292,7 @@ for news in reversed(new_posts):
                 "photo": ("photo.jpg", img.content)
             }
         )
-    
     else:
-    
         tg_post(
             "sendMessage",
             {
@@ -309,7 +302,6 @@ for news in reversed(new_posts):
                 "reply_markup": keyboard
             }
         )
-    
     print("Preview sent")
     time.sleep(2)
     
@@ -317,59 +309,38 @@ for news in reversed(new_posts):
     # =========================
     # Надсилання тексту статті
     # =========================
-    
+       
     MAX_LEN = 3500
     print("Article length:", len(article_text))
     
-    if len(article_text) <= MAX_LEN:
-        article_text = html.escape(article_text)
-    
+    for i in range(0, len(article_text), MAX_LEN):
+        chunk = html.escape(article_text[i:i + MAX_LEN])
         tg_post(
             "sendMessage",
             {
                 "chat_id": CHAT_ID,
-                "text": f"<blockquote expandable>{article_text}</blockquote>",
+                "text": f"<blockquote expandable>{chunk}</blockquote>",
                 "parse_mode": "HTML"
             }
         )
     
-        print("Article sent")
-    
-    else:
-        for i in range(0, len(article_text), MAX_LEN):
-            print("Sending chunk:", i // MAX_LEN + 1)
-    
-            chunk = article_text[i:i + MAX_LEN]
-            chunk = html.escape(chunk)
-    
-            tg_post(
-                "sendMessage",
-                {
-                    "chat_id": CHAT_ID,
-                    "text": f"<blockquote expandable>{chunk}</blockquote>",
-                    "parse_mode": "HTML"
-                }
-            )
-    
+        if len(article_text) > MAX_LEN:
             time.sleep(1)
-            print("Chunk sent:", i // MAX_LEN + 1)
-                 
+        print("Chunk sent:", i // MAX_LEN + 1)
+             
     
 # =========================
 # Оновлення state.json
 # =========================
 
 if new_posts:
-
     # Запам'ятати новину
     state["last_url"] = new_posts[0]["href"]
-
     with open(
         STATE_FILE,
         "w",
         encoding="utf-8"
     ) as f:
-
         json.dump(
             state,
             f,

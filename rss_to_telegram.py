@@ -24,7 +24,7 @@ STATE_FILE = "state.json"
 # ======================================================
 # Функція створення сторінки Telegraph (тільки source)
 # ======================================================
-def create_source_telegraph(source_text, source_url):
+def create_source_telegraph(source_name, source_url):
     response = requests.post(
         "https://api.telegra.ph/createPage",
         json={
@@ -34,22 +34,14 @@ def create_source_telegraph(source_text, source_url):
             "content": [
                 {
                     "tag": "p",
-                    "children": [
-                        {
-                            "tag": "a",
-                            "attrs": {"href": source_url},
-                            "children": [source_text]
-                        }
-                    ]
+                    "children": [f"Источник: {source_name} ({source_url})"]
                 }
             ],
-            "return_content": False
         },
         timeout=30
     )
     response.raise_for_status()
-    data = response.json()
-    return data["result"]["url"]
+    return response.json()["result"]["url"]
     
 
 # ===============================================================

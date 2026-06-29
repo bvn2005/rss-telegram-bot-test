@@ -23,8 +23,8 @@ STATE_FILE = "state.json"
     
 
 # ===============================================================
-# 👉 Функція для відправки повідомлень у Telegram через Bot API
-# 👉 з автоматичним повтором при помилках (особливо 429)
+# Функція для відправки повідомлень у Telegram через Bot API
+# з автоматичним повтором при помилках (особливо 429)
 # ===============================================================
 def tg_post(method, payload=None, files=None):
     for attempt in range(3):
@@ -129,18 +129,12 @@ r = requests.get(
 r.raise_for_status()
 soup = BeautifulSoup(r.text, "html.parser")
 
-
-# =========================
 # Пошук новин
-# =========================
 news_list = soup.select("a.border.border-radius.padding")
 if not news_list:
     raise Exception("News not found")
 
-
-# =========================
 # Пошук нових новин
-# =========================
 new_posts = []
 for news in news_list:
     # Посилання на новину

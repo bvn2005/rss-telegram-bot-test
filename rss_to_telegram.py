@@ -180,7 +180,7 @@ for news in reversed(new_posts):
     # ==============
     article_text = get_article_text(link)
     print("LEN:", len(article_text))
-    print(article_text[:1000])
+    # print(article_text[:1000])
     
     for line in article_text.split("\n\n"):
         if article_text.count(line) > 1:

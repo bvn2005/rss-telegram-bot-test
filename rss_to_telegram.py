@@ -1,3 +1,4 @@
+import time
 # Робота з змінними середовища (BOT_TOKEN, CHAT_ID)
 import os
 # Парсер HTML
@@ -19,6 +20,22 @@ URL = "https://mt-news.ru/news/"
 # Файл для запам'ятовування останньої опублікованої новини
 STATE_FILE = "state.json"
 
+def tg_post(method, payload=None, files=None):
+    for attempt in range(3):
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
+        if files:
+            response = requests.post(url, data=payload, files=files, timeout=60)
+        else:
+            response = requests.post(url, json=payload, timeout=30)
+        if response.status_code == 200:
+            return response
+        if response.status_code == 429:
+            retry_after = response.json()["parameters"]["retry_after"]
+            print(f"Rate limit! Waiting {retry_after}s...")
+            time.sleep(retry_after)
+            continue
+        response.raise_for_status()
+    raise Exception("Failed after retries")
 
 # =========================
 # Отримання тексту статті
@@ -253,6 +270,7 @@ for news in reversed(new_posts):
         f"{source_text}"
     )
     
+    
     if preview_photo:
     
         img = requests.get(
@@ -267,45 +285,33 @@ for news in reversed(new_posts):
         print("Image size:", len(img.content))
         print("Image content-type:", img.headers.get("content-type"))
     
-        response = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
-            data={
+        tg_post(
+            "sendPhoto",
+            payload={
                 "chat_id": CHAT_ID,
                 "caption": caption,
                 "parse_mode": "HTML",
                 "reply_markup": json.dumps(keyboard)
             },
             files={
-                "photo": (
-                    "photo.jpg",
-                    img.content
-                )
-            },
-            timeout=60
+                "photo": ("photo.jpg", img.content)
+            }
         )
     
     else:
     
-        response = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-            json={
+        tg_post(
+            "sendMessage",
+            {
                 "chat_id": CHAT_ID,
                 "text": caption,
                 "parse_mode": "HTML",
-                # Кнопка під повідомленням
                 "reply_markup": keyboard
-            },
-            timeout=30
+            }
         )
-
-    # Логування відповіді Telegram
-    print("Status:", response.status_code)
-    print("Response:", response.text)
-
     
-    # Якщо Telegram повернув помилку
-    response.raise_for_status()
     print("Preview sent")
+    time.sleep(2)
     
     
     # =========================
@@ -314,46 +320,40 @@ for news in reversed(new_posts):
     
     MAX_LEN = 3500
     print("Article length:", len(article_text))
+    
     if len(article_text) <= MAX_LEN:
         article_text = html.escape(article_text)
-        article_response = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-            json={
+    
+        tg_post(
+            "sendMessage",
+            {
                 "chat_id": CHAT_ID,
                 "text": f"<blockquote expandable>{article_text}</blockquote>",
                 "parse_mode": "HTML"
-            },
-            timeout=30
+            }
         )
-    
-        print("Article status:", article_response.status_code)
-        print("Article response:", article_response.text)
-    
-        article_response.raise_for_status()
     
         print("Article sent")
     
     else:
         for i in range(0, len(article_text), MAX_LEN):
             print("Sending chunk:", i // MAX_LEN + 1)
+    
             chunk = article_text[i:i + MAX_LEN]
             chunk = html.escape(chunk)
-
-            article_response = requests.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                json={
+    
+            tg_post(
+                "sendMessage",
+                {
                     "chat_id": CHAT_ID,
                     "text": f"<blockquote expandable>{chunk}</blockquote>",
                     "parse_mode": "HTML"
-                },
-                timeout=30
+                }
             )
-        
-            article_response.raise_for_status()
-        
-            print("Chunk sent:", i // MAX_LEN + 1)
     
-            
+            time.sleep(1)
+            print("Chunk sent:", i // MAX_LEN + 1)
+                 
     
 # =========================
 # Оновлення state.json

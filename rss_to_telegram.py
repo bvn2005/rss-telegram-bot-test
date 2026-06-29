@@ -9,6 +9,7 @@ import json
 import requests
 from bs4 import BeautifulSoup
 
+
 # Токен Telegram-бота із GitHub Secrets
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 # ID каналу або чату із GitHub Secrets
@@ -19,6 +20,7 @@ CHAT_ID = os.environ["CHAT_ID"]
 URL = "https://mt-news.ru/news/"
 # Файл для запам'ятовування останньої опублікованої новини
 STATE_FILE = "state.json"
+
 
 # ===============================================================
 # 👉 Функція для відправки повідомлень у Telegram через Bot API
@@ -41,11 +43,11 @@ def tg_post(method, payload=None, files=None):
         response.raise_for_status()
     raise Exception("Failed after retries")
 
-# =========================
-# Отримання тексту статті
-# =========================
-def get_article_text(url):
 
+# =================================
+# Функція отримання тексту статті
+# =================================
+def get_article_text(url):
     r = requests.get(
         url,
         # Імітуємо звичайний браузер
@@ -58,29 +60,23 @@ def get_article_text(url):
     
     # Розбір HTML
     soup = BeautifulSoup(r.text, "html.parser")
-
     article = soup.select_one("div.text.margin-top")
-
     if not article:
         return ""
-
     parts = []
 
     for tag in article.find_all(["p", "blockquote"]):
-
         # ❗ пропускаємо p всередині blockquote
         if tag.name == "p" and tag.find_parent("blockquote"):
-            continue
-            
+            continue     
         text = tag.get_text(" ", strip=True)
         if text:
             parts.append(text)
-
     return "\n\n".join(parts)
 
 
 # =========================
-# Пошук тегів
+# Функція пошуку тегів
 # =========================
 def get_tags(soup):
     tags_block = soup.select_one("p.tags")   
@@ -99,55 +95,45 @@ def get_tags(soup):
 
 
 # =========================
-# Пошук джерела
+# Функція пошуку джерела
 # =========================
 def get_source(soup):
-
     source_block = soup.select_one("p.source a")
-
     if not source_block:
         return ""
-
     source_text = source_block.get_text(strip=True)
     source_url = source_block.get("href")
-
     return f"Источник: <a href='{source_url}'>{source_text}</a>"
+
 
 # =========================
 # Завантаження state.json
 # =========================
-
 try:
     # Якщо файл існує — читаємо його
     with open(STATE_FILE, "r", encoding="utf-8") as f:
         state = json.load(f)
-
 except:
     # Якщо файл відсутній — створюємо порожній стан
     state = {"last_url": ""}
 
 
-# =========================
+# =============================
 # Завантаження сторінки новин
-# =========================
-
+# =============================
 r = requests.get(
     URL,
     headers={"User-Agent": "Mozilla/5.0"},
     timeout=30
 )
-
 r.raise_for_status()
-
 soup = BeautifulSoup(r.text, "html.parser")
 
 
 # =========================
 # Пошук новин
 # =========================
-
 news_list = soup.select("a.border.border-radius.padding")
-
 if not news_list:
     raise Exception("News not found")
 
@@ -155,9 +141,7 @@ if not news_list:
 # =========================
 # Пошук нових новин
 # =========================
-
 new_posts = []
-
 for news in news_list:
     # Посилання на новину
     link = news["href"]
@@ -166,7 +150,6 @@ for news in news_list:
     # Якщо ця новина вже публікувалася
     if link == state.get("last_url"):
         break
-
     new_posts.append(news)
 
 print("New posts found:", len(new_posts))
@@ -176,31 +159,25 @@ if not new_posts:
     raise SystemExit(0)
     
 
-# =========================
+# ==================
 # Публікація новин
-# =========================
-
+# ==================
 for news in reversed(new_posts):
-
     link = news["href"]
 
     print("=" * 50)
     print("Publishing:", link)
-    
     # Отримання дати новини
     date = news.find("span").get_text(strip=True)
-
     # Отримання заголовка
     title = news.find(
         "h3",
         class_="padding-top"
     ).get_text(strip=True)
-    
- 
-    # =========================
-    # Текст статті
-    # =========================
 
+    # ==============
+    # Текст статті
+    # ==============
     article_text = get_article_text(link)
     print("LEN:", len(article_text))
     print(article_text[:1000])
@@ -209,43 +186,34 @@ for news in reversed(new_posts):
         if article_text.count(line) > 1:
             print("DUPLICATE:", line[:80])
 
-    
-    # =========================
+    # =============
     # Фото новини
-    # =========================
-    
+    # ============= 
     article_page = requests.get(
         link,
         headers={"User-Agent": "Mozilla/5.0"},
         timeout=30
     )
-    
     article_page.raise_for_status()
     article_soup = BeautifulSoup(
         article_page.text,
         "html.parser"
     )
-
     tags = get_tags(article_soup)
     tags_text = " ".join(tags)
     source_text = get_source(article_soup)
         
     preview_photo = None
-    
     figure = article_soup.select_one(
         "div.text.margin-top figure.wp-block-image img"
     )
-    
     if figure:
         preview_photo = figure.get("src")
-    
     print("Photo URL:", preview_photo)
     
-    
-    # =========================
+    # ========
     # Кнопка
-    # =========================
-    
+    # ========
     keyboard = {
         "inline_keyboard": [[
             {
@@ -255,11 +223,9 @@ for news in reversed(new_posts):
         ]]
     }
 
-
-    # =========================
+    # =====================
     # Повідомлення з фото
-    # =========================
-    
+    # =====================
     caption = (
         f"🏍 MotoGP News\n\n"
         f"<b>{title}</b>\n\n"
@@ -305,11 +271,9 @@ for news in reversed(new_posts):
     print("Preview sent")
     time.sleep(2)
     
-    
-    # =========================
+    # ==========================
     # Надсилання тексту статті
-    # =========================
-       
+    # ==========================    
     MAX_LEN = 3500
     print("Article length:", len(article_text))
     
@@ -327,12 +291,11 @@ for news in reversed(new_posts):
         if len(article_text) > MAX_LEN:
             time.sleep(1)
         print("Chunk sent:", i // MAX_LEN + 1)
-             
-    
-# =========================
-# Оновлення state.json
-# =========================
 
+
+# ======================
+# Оновлення state.json
+# ======================
 if new_posts:
     # Запам'ятати новину
     state["last_url"] = new_posts[0]["href"]
@@ -347,5 +310,4 @@ if new_posts:
             ensure_ascii=False,
             indent=2
         )
-
     print("New last_url:", state["last_url"])

@@ -180,6 +180,7 @@ for news in reversed(new_posts):
     # ==============
     article_text = get_article_text(link)
     print("LEN:", len(article_text))
+    # виводить шматок тексту в лог
     # print(article_text[:1000])
     
     for line in article_text.split("\n\n"):

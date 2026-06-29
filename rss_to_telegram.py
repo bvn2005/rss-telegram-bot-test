@@ -28,7 +28,7 @@ def create_source_telegraph(source_text, source_url):
     response = requests.post(
         "https://api.telegra.ph/createPage",
         json={
-            "access_token": 33ad462e4a40ef3e201d080257c97cce622050da97d0f5e79bbb4548c0ec,
+            "access_token": "33ad462e4a40ef3e201d080257c97cce622050da97d0f5e79bbb4548c0ec",
             "title": "Источник",
             "author_name": "Moto News",
             "content": [

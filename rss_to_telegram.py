@@ -20,28 +20,6 @@ CHAT_ID = os.environ["CHAT_ID"]
 URL = "https://mt-news.ru/news/"
 # Файл для запам'ятовування останньої опублікованої новини
 STATE_FILE = "state.json"
-
-# ======================================================
-# Функція створення сторінки Telegraph (тільки source)
-# ======================================================
-def create_source_telegraph(source_name, source_url):
-    response = requests.post(
-        "https://api.telegra.ph/createPage",
-        json={
-            "access_token": "33ad462e4a40ef3e201d080257c97cce622050da97d0f5e79bbb4548c0ec",
-            "title": "Источник",
-            "author_name": "Moto News",
-            "content": [
-                {
-                    "tag": "p",
-                    "children": [f"Источник: {source_name} ({source_url})"]
-                }
-            ],
-        },
-        timeout=30
-    )
-    response.raise_for_status()
-    return response.json()["result"]["url"]
     
 
 # ===============================================================
@@ -225,16 +203,6 @@ for news in reversed(new_posts):
     tags = get_tags(article_soup)
     tags_text = " ".join(tags)
     source_text = get_source(article_soup)
-
-    # ====================================================================
-    # Функція створення сторінки Telegraph (тільки source)
-    source_block = article_soup.select_one("p.source a")
-    telegraph_url = None
-    if source_block:
-        source_name = source_block.get_text(strip=True)
-        source_url = source_block.get("href")
-        telegraph_url = create_source_telegraph(source_name, source_url)
-    # ====================================================================
         
     preview_photo = None
     figure = article_soup.select_one(
@@ -264,8 +232,7 @@ for news in reversed(new_posts):
         f"<b>{title}</b>\n\n"
         f"📅 {date}\n\n"
         f"{tags_text}\n\n"
-        f"{source_text}\n\n"
-        f"Источник: {telegraph_url}" if telegraph_url else source_text
+        f"{source_text}"
     )
     
     if preview_photo:
